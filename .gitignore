@@ -4,7 +4,7 @@ __pycache__/
 .pytest_cache/
 *.pyc
 results/
-
+datasets/
 
 Neo4j-*-Created-2026-08-21.txt
 
