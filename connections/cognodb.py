@@ -15,3 +15,5 @@ driver = GraphDatabase.driver(
 driver.verify_connectivity()
 
 print("Connected successfully")
+
+driver.close()
