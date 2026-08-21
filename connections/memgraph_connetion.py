@@ -6,7 +6,7 @@ load_dotenv()
 
 
 def hello_memgraph(host: str, port: int, username: str, password: str):
-    connection = Memgraph(host, port, username, password, encrypted=True)
+    connection = Memgraph(host, int(port), username, password, encrypted=True)
     results = connection.execute_and_fetch(
         'CREATE (n:FirstNode { message: "Hello Memgraph from Python!" }) RETURN n.message AS message'
     )
