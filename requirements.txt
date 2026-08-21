@@ -10,3 +10,5 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.3
 pytz==2026.3.post1
 six==1.17.0
+python-arango>=8.1.0
+falkordb>=1.0.9
