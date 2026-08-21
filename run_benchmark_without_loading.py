@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-One-command entry point for the whole benchmark pipeline:
+Testing entry point for the benchmark pipeline (LOADING DISABLED):
 
-    python run_benchmark.py
+    python run_test_benchmark.py
 
 Pipeline stages (each can be skipped with a flag):
   1. install   -> pip install -r requirements.txt (Skipped if already installed)
   2. dataset   -> scripts/download_and_process_dataset.py (Skipped if dataset exists)
-  3. load      -> workloads/run_all_loaders.py (Skipped if load_metrics.csv exists)
-  4. workloads -> workloads/run_all_workloads.py
+  3. workloads -> scripts/run_all_workloads.py
 
 Credentials are read from `.env` (copy `.env.example` -> `.env` and fill in
 whichever databases you actually have running; scripts skip any DB whose
@@ -17,11 +16,9 @@ env vars are missing).
 Flags:
   --skip-install      skip `pip install -r requirements.txt`
   --skip-dataset      skip dataset download/processing
-  --skip-load         skip loading data into the databases
   --skip-workloads    skip running the workload/concurrency/footprint suite
   --force-dataset     re-download and rebuild datasets/*.csv even if they exist
-  --force-load        re-load data into databases even if load_metrics.csv exists
-  --only STAGE        run a single stage only (install|dataset|load|workloads)
+  --only STAGE        run a single stage only (install|dataset|workloads)
 """
 
 import argparse
@@ -48,7 +45,7 @@ def run(cmd, cwd=BASE_DIR):
 
 
 def stage_install():
-    banner("STAGE 1/4 — Installing dependencies")
+    banner("STAGE 1/3 — Installing dependencies")
     # Smart check: Only run pip install if core packages are missing
     try:
         import pandas
@@ -65,7 +62,7 @@ def stage_install():
 
 
 def stage_dataset(force: bool):
-    banner("STAGE 2/4 — Downloading & processing dataset")
+    banner("STAGE 2/3 — Downloading & processing dataset")
     nodes_path = os.path.join(BASE_DIR, "datasets", "nodes.csv")
     rels_path = os.path.join(BASE_DIR, "datasets", "relationships.csv")
 
@@ -81,22 +78,8 @@ def stage_dataset(force: bool):
     run(cmd)
 
 
-def stage_load(force: bool):
-    banner("STAGE 3/4 — Loading data into all configured databases")
-    metrics_path = os.path.join(BASE_DIR, "results", "load_metrics.csv")
-
-    # Smart check: If load metrics exist, assume DBs are already populated
-    if not force and os.path.exists(metrics_path):
-        print("✅ Data seems to be already loaded (load_metrics.csv exists).")
-        print("   Skipping load stage. (Use --force-load to override)")
-        return
-
-    script = os.path.join(BASE_DIR, "scripts", "run_all_loaders.py")
-    run([sys.executable, script])
-
-
 def stage_workloads():
-    banner("STAGE 4/4 — Running workloads, concurrency & footprint benchmarks")
+    banner("STAGE 3/3 — Running workloads, concurrency & footprint benchmarks")
     # Updated path to match your scripts folder
     script = os.path.join(BASE_DIR, "workloads", "run_all_workloads.py")
     run([sys.executable, script])
@@ -111,14 +94,12 @@ def check_env_file():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run the full graph-DB benchmark pipeline.")
+    parser = argparse.ArgumentParser(description="Run the testing benchmark pipeline (NO LOAD).")
     parser.add_argument("--skip-install", action="store_true")
     parser.add_argument("--skip-dataset", action="store_true")
-    parser.add_argument("--skip-load", action="store_true")
     parser.add_argument("--skip-workloads", action="store_true")
     parser.add_argument("--force-dataset", action="store_true", help="Re-download/rebuild the dataset CSVs")
-    parser.add_argument("--force-load", action="store_true", help="Re-load data even if load_metrics.csv exists")
-    parser.add_argument("--only", choices=["install", "dataset", "load", "workloads"], default=None,
+    parser.add_argument("--only", choices=["install", "dataset", "workloads"], default=None,
                          help="Run only this single stage")
     args = parser.parse_args()
 
@@ -129,7 +110,6 @@ def main():
         stage_map = {
             "install": stage_install,
             "dataset": lambda: stage_dataset(args.force_dataset),
-            "load": lambda: stage_load(args.force_load),
             "workloads": stage_workloads,
         }
         stage_map[args.only]()
@@ -138,15 +118,12 @@ def main():
             stage_install()
         if not args.skip_dataset:
             stage_dataset(args.force_dataset)
-        if not args.skip_load:
-            stage_load(args.force_load)
         if not args.skip_workloads:
             stage_workloads()
 
     elapsed = time.time() - start
-    banner(f"✅ Pipeline complete in {elapsed:.1f}s")
+    banner(f"✅ Testing Pipeline complete in {elapsed:.1f}s")
     print("Results written to:")
-    print("  results/load_metrics.csv")
     print("  results/workload_metrics.csv")
     print("  results/workload_raw_latencies.csv")
     print("  results/concurrency_metrics.csv")
