@@ -47,3 +47,6 @@ The benchmark methodology requires running every database on equivalent resource
 
 ### Resource Mismatch Caveat:
 Because managed providers offer drastically different baseline entry tiers (ranging from 0.5 GiB to 4 GiB RAM), **CognoDB and FalkorDB operate at a distinct hardware disadvantage** in this benchmark compared to ArangoDB, Memgraph, and Neo4j. This resource disparity is an unavoidable artifact of testing managed cloud services and must be factored in when interpreting the final latency and throughput percentiles.
+
+### 3. Caveats & Technical Observations
+* **Free-Tier Timeouts & Indexing:** During the initial data loading on CognoDB (0.5 vCPU, 512 MB RAM), the relationship ingestion queries triggered a `context deadline exceeded` (Timeout) error. This occurred because the `MATCH` clause was filtering `Source` and `Target` nodes by `id` without an index, forcing the database engine to perform a full graph scan O(N) for every relationship in the batch. Adding a secondary index on `Person(id)` reduced the lookup time to O(1) and resolved the timeout entirely, demonstrating the extreme sensitivity of resource-constrained free tiers to query execution plans.
